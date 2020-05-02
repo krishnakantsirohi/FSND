@@ -5,7 +5,9 @@
 	<div class="col-sm-6">
 		<h1 class="monospace">
 			{{ artist.name }}
+			<a href="{{ url_for('edit_artist', artist_id=artist.id) }}"><i class="fas fa-pencil-alt"></i></a>
 		</h1>
+
 		<p class="subtitle">
 			ID: {{ artist.id }}
 		</p>
@@ -37,6 +39,7 @@
 		<p class="not-seeking">
 			<i class="fas fa-moon"></i> Not currently seeking performance venues
 		</p>
+
 		{% endif %}
 	</div>
 	<div class="col-sm-6">
