@@ -185,4 +185,3 @@ class ShowForm(FlaskForm):
     description = StringField('description')
     starttime = DateTimeField('starttime', validators=[DataRequired()])
 
-# TODO IMPLEMENT NEW ARTIST FORM AND NEW SHOW FORM
