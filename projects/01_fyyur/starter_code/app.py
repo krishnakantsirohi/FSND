@@ -15,7 +15,7 @@ from flask_migrate import Migrate
 import logging
 from logging import Formatter, FileHandler
 from flask_wtf import Form
-from datetime import datetime
+from datetime import datetime, date
 from forms import *
 
 # ----------------------------------------------------------------------------#
@@ -48,6 +48,7 @@ class Venue(db.Model):
     website = db.Column(db.String)
     image_link = db.Column(db.String(500))
     facebook_link = db.Column(db.String(120))
+    createddatetime = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
     shows = db.relationship('Show', cascade="save-update, merge, delete")
 
     def __repr__(self):
@@ -62,29 +63,32 @@ class Artist(db.Model):
     state = db.Column(db.String(120), nullable=False)
     phone = db.Column(db.String(120))
     genres = db.Column(db.String(120))
+    availability = db.Column(db.String)
     website = db.Column(db.String)
     seeking_venue = db.Column(db.Boolean, default=False, nullable=False)
     seeking_description = db.Column(db.String)
     image_link = db.Column(db.String(500))
     facebook_link = db.Column(db.String(120))
+    createddatetime = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
     shows = db.relationship('Show', cascade="save-update, merge, delete")
 
     def __repr__(self):
         return f'<Artist {self.id} {self.name} {self.city} {self.state} {self.phone} {self.genres} {self.image_link} {self.facebook_link}>'
 
 
-
 class Show(db.Model):
     __tablename__ = 'Show'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String, nullable=False)
-    date_time = db.Column(db.DateTime, nullable=False)
+    starttime = db.Column(db.DateTime, nullable=False)
+    endtime = db.Column(db.DateTime, nullable=False)
     description = db.Column(db.String)
     venue_id = db.Column(db.Integer, db.ForeignKey('Venue.id'), nullable=False)
     artist_id = db.Column(db.Integer, db.ForeignKey('Artist.id'), nullable=False)
+    createddatetime = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
 
     def __repr__(self):
-        return f'<Show {self.id} {self.name} {self.date_time} {self.description} {self.venue_id} {self.artist_id}>'
+        return f'<Show {self.id} {self.name} {self.starttime} {self.endtime} {self.description} {self.venue_id} {self.artist_id}>'
 
 
 # ----------------------------------------------------------------------------#
@@ -111,6 +115,14 @@ def validatePhoneNumber(num):
         return False
 
 
+def todate(str):
+    return datetime.strptime(str, '%Y-%m-%d').date()
+
+
+def gettime(str):
+    return datetime.strptime(str, '%Y-%m-%d %H:%M:%S')
+
+
 app.jinja_env.filters['datetime'] = format_datetime
 
 
@@ -120,7 +132,9 @@ app.jinja_env.filters['datetime'] = format_datetime
 
 @app.route('/')
 def index():
-    return render_template('pages/home.html')
+    artists_ = Artist.query.order_by(Artist.createddatetime.desc()).limit(10).all()
+    venues_ = Venue.query.order_by(Venue.createddatetime.desc()).limit(10).all()
+    return render_template('pages/home.html', artists=artists_, venues=venues_)
 
 
 #  Venues
@@ -172,7 +186,6 @@ def search_venues():
         resp = ('%' + request.form['search_term'] + '%')
         venue_ = Venue.query.filter(Venue.name.ilike("%" + resp))
         venues_ = venue_.all()
-        response = {}
         response = {
             "count": venue_.count(),
             "data": [{
@@ -180,7 +193,7 @@ def search_venues():
                 "name": v.name,
                 "num_upcoming_shows": (
                     Show.query.join(Venue, Venue.id == Show.venue_id).filter(Venue.id == v.id).filter(
-                        Show.date_time > datetime.now()).count()),
+                        Show.starttime > datetime.now()).count()),
             } for v in venues_]
         }
     except:
@@ -208,12 +221,13 @@ def show_venue(venue_id):
         upcoming_shows_count = 0
         for s in shows:
             artist = Artist.query.filter_by(id=s.artist_id).all()[0]
-            if s.date_time < datetime.now():
+            if s.starttime < datetime.now():
                 past_shows.append({
                     "artist_id": s.artist_id,
                     "artist_name": artist.name,
                     "artist_image_link": artist.image_link,
-                    "start_time": str(s.date_time)
+                    "starttime": str(s.starttime),
+
                 })
                 past_shows_count += 1
             else:
@@ -221,7 +235,7 @@ def show_venue(venue_id):
                     "artist_id": s.artist_id,
                     "artist_name": artist.name,
                     "artist_image_link": artist.image_link,
-                    "start_time": str(s.date_time)
+                    "starttime": str(s.starttime)
                 })
                 upcoming_shows_count += 1
         data = {
@@ -299,7 +313,7 @@ def create_venue_submission():
         # on unsuccessful db insert, flash an error instead.
         # e.g., flash('An error occurred. Venue ' + data.name + ' could not be listed.')
         # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
-        return render_template('pages/home.html')
+        return redirect(url_for('index'))
     else:
         flash('Phone Number ' + request.form['phone'] + ' is invalid.')
         form = VenueForm()
@@ -365,7 +379,7 @@ def search_artists():
                 "name": a.name,
                 "num_upcoming_shows": (
                     Show.query.join(Artist, Artist.id == Show.artist_id).filter(Artist.id == a.id).filter(
-                        Show.date_time > datetime.now()).count()),
+                        Show.starttime > datetime.now()).count()),
             } for a in artists_]
         }
     except:
@@ -384,20 +398,20 @@ def search_artists():
 def show_artist(artist_id):
     error = False
     try:
-        artists_ = Artist.query.with_entities(Artist, Show, Venue).join(Show, Show.artist_id == Artist.id).join(Venue,
-                                                                                                                Venue.id == Show.venue_id).filter(
-            Show.artist_id == artist_id).all()
+        artists_ = Artist.query.with_entities(Artist, Show, Venue).join(Show, Show.artist_id == Artist.id) \
+            .join(Venue, Venue.id == Show.venue_id) \
+            .filter(Show.artist_id == artist_id).all()
         past_shows = []
         upcoming_shows = []
         past_shows_count = 0
         upcoming_shows_count = 0
         for s in artists_:
-            if s.Show.date_time < datetime.now():
+            if s.Show.starttime < datetime.now():
                 past_shows.append({
                     "venue_id": s.Venue.id,
                     "venue_name": s.Venue.name,
                     "venue_image_link": s.Venue.image_link,
-                    "start_time": str(s.Show.date_time)
+                    "start_time": str(s.Show.starttime)
                 })
                 past_shows_count += 1
             else:
@@ -405,7 +419,7 @@ def show_artist(artist_id):
                     "venue_id": s.Venue.id,
                     "venue_name": s.Venue.name,
                     "venue_image_link": s.Venue.image_link,
-                    "start_time": str(s.Show.date_time)
+                    "start_time": str(s.Show.starttime)
                 })
                 upcoming_shows_count += 1
         artists_ = Artist.query.filter_by(id=artist_id).all()[0]
@@ -418,9 +432,12 @@ def show_artist(artist_id):
             "state": artists_.state,
             "phone": None if not phone else phone,
             "website": '' if artists_.website == 'NULL' else artists_.website,
-            "facebook_link": '' if artists_.facebook_link == 'NULL' else artists_.facebook_link,
+            "facebook_link": ' ' if artists_.facebook_link == 'NULL' else artists_.facebook_link,
             "seeking_venue": artists_.seeking_venue,
-            "seeking_description": '' if artists_.seeking_description == 'NULL' else artists_.seeking_description,
+            "seeking_description": None if artists_.seeking_description is None else artists_.seeking_description,
+            "availability": '' if artists_.availability is '' or artists_.availability is None else [
+                d if datetime.strptime(d, '%Y-%m-%d').date() > datetime.now().date() else None
+                for d in artists_.availability.split(',')],
             "image_link": '' if artists_.image_link == 'NULL' else artists_.image_link,
             "past_shows": past_shows,
             "upcoming_shows": upcoming_shows,
@@ -452,6 +469,7 @@ def edit_artist(artist_id):
         form.genres.data = artist.genres.split(", ")
         form.seeking_venue.data = artist.seeking_venue
         form.seeking_description.data = artist.seeking_description
+        form.availability.data = '' if artist.availability is None else artist.availability
         form.facebook_link.data = '' if artist.facebook_link == 'NULL' else artist.facebook_link
         form.image_link.data = '' if artist.image_link == 'NULL' else artist.image_link
         form.website.data = '' if artist.website == 'NULL' else artist.website
@@ -480,6 +498,7 @@ def edit_artist_submission(artist_id):
         artist.genres = ', '.join(data.getlist('genres'))
         artist.seeking_venue = data['seeking_venue'] == 'Yes'
         artist.seeking_description = '' if data['seeking_description'] == 'NULL' else data['seeking_description']
+        artist.availability = '' if data['availability'] == 'NULL' else data['availability']
         artist.facebook_link = '' if data['facebook_link'] == 'NULL' else data['facebook_link']
         artist.website = '' if data['website'] == 'NULL' else data['website']
         artist.image_link = '' if data['image_link'] == 'NULL' else data['image_link']
@@ -544,7 +563,7 @@ def edit_venue_submission(venue_id):
         venue.phone = '' if not phone else phone
         venue.genres = ', '.join(data.getlist('genres'))
         venue.seeking_description = '' if data['seeking_description'] == 'NULL' else data['seeking_description']
-        venue.seeking_talent = data['seeking_talent']=='Yes'
+        venue.seeking_talent = data['seeking_talent'] == 'Yes'
         venue.facebook_link = '' if data['facebook_link'] == 'NULL' else data['facebook_link']
         venue.image_link = '' if data['image_link'] == 'NULL' else data['image_link']
         venue.website = '' if data['website'] == 'NULL' else data['website']
@@ -583,6 +602,7 @@ def create_artist_submission():
             return render_template('forms/new_artist.html', form=form)
         artist = Artist(name=data['name'], city=data['city'], state=data['state'],
                         phone='' if not phone else phone, genres=', '.join(data.getlist('genres')),
+                        availability=data['availability'],
                         image_link='' if data['image_link'] == 'NULL' else data['image_link'],
                         facebook_link='' if data['facebook_link'] == 'NULL' else data['facebook_link'],
                         website='' if data['website'] == 'NULL' else data['website'],
@@ -599,7 +619,7 @@ def create_artist_submission():
         # on successful db insert, flash success
         flash('Artist ' + request.form['name'] + ' was successfully listed!')
         # e.g., flash('An error occurred. Artist ' + data.name + ' could not be listed.')
-        return render_template('pages/home.html')
+        return redirect(url_for('index'))
     else:
         return render_template('errors/500.html')
 
@@ -613,16 +633,18 @@ def shows():
     error = False
     try:
         shows_ = Show.query.with_entities(Venue.id, Venue.name, Artist.id, Artist.name, Artist.image_link,
-                                          Show.date_time).join(Artist, Artist.id == Show.artist_id).join(Venue,
-                                                                                                         Venue.id == Show.venue_id).order_by(
-            Show.date_time).all()
+                                          Show.starttime, Show.endtime).join(Artist, Artist.id == Show.artist_id).join(
+            Venue,
+            Venue.id == Show.venue_id).order_by(
+            Show.starttime).all()
         data = [{
             "venue_id": s[0],
             "venue_name": s[1],
             "artist_id": s[2],
             "artist_name": s[3],
             "artist_image_link": s[4],
-            "start_time": str(s[5])
+            "starttime": str(s[5]),
+            "endtime": str(s[6])
         } for s in shows_]
     except:
         error = True
@@ -639,6 +661,15 @@ def shows():
 def create_shows():
     # renders form. do not touch.
     form = ShowForm()
+    artists_ = Artist.query.all()
+    venues_ = Venue.query.all()
+    artistid = request.args.get('artistid', 1, int)
+    start_date = request.args.get('start_date', datetime.now(), todate)
+    form.artists.choices = [(a.id, a.name) for a in artists_]
+    form.venues.choices = [(v.id, v.name) for v in venues_]
+    form.artists.data = artistid
+    form.starttime.data = start_date
+    form.endtime.data = start_date
     return render_template('forms/new_show.html', form=form)
 
 
@@ -648,12 +679,32 @@ def create_show_submission():
     error = False
     try:
         data = request.form
+        shows = Show.query.filter(Show.artist_id == data['artists'], Show.venue_id == data['venues'])
+        for s in shows:
+            t1 = s.starttime
+            t2 = gettime(data['starttime'])
+            t3 = gettime(data['endtime'])
+            t4 = s.endtime
+            if t1 <= t2 <= t4:
+                flash('Start time overlaps with another show')
+                return create_shows()
+            elif t1 <= t3 <= t4:
+                flash('End time overlaps with another show')
+                return create_shows()
+        artists_ = Artist.query.filter(Artist.id==data['artists']).one_or_none()
+        ar = artists_.availability.split(", ")
+        dt = data['starttime'][:10]
+        if dt in ar:
+            ar.remove(dt)
+            artists_.availability = ', '.join(ar)
+            db.session.add(artists_)
         show = Show(name=data['name'], artist_id=data['artists'], venue_id=data['venues'],
-                    description=data['description'], date_time=data['starttime'])
+                    description=data['description'], starttime=data['starttime'], endtime=data['endtime'])
         db.session.add(show)
         db.session.commit()
     except:
         error = True
+        print(sys.exc_info())
         db.session.rollback()
     finally:
         db.session.close()
@@ -662,7 +713,7 @@ def create_show_submission():
         flash('Show was successfully listed!')
         # e.g., flash('An error occurred. Show could not be listed.')
         # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
-        return render_template('pages/home.html')
+        return redirect(url_for('index'))
     else:
         return render_template('errors/500.html')
 

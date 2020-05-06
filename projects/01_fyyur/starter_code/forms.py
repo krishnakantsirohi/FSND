@@ -1,8 +1,6 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SelectField, SelectMultipleField, RadioField
-from wtforms_components import DateTimeField
+from wtforms import StringField, SelectField, SelectMultipleField, DateField,DateTimeField
 from wtforms.validators import DataRequired
-from app import *
 
 
 class ArtistForm(FlaskForm):
@@ -70,6 +68,7 @@ class ArtistForm(FlaskForm):
         ('Electronic', 'Electronic'),
         ('Folk', 'Folk'),
         ('Funk', 'Funk'),
+        ('Hard Rock', 'Hard Rock'),
         ('Hip-Hop', 'Hip-Hop'),
         ('Heavy Metal', 'Heavy Metal'),
         ('Instrumental', 'Instrumental'),
@@ -83,6 +82,7 @@ class ArtistForm(FlaskForm):
         ('Soul', 'Soul'),
         ('Other', 'Other')
     ])
+    availability = StringField('availability')
     seeking_venue = SelectField('seeking_venue', choices=[(False, 'No'), (True, 'Yes')])
     seeking_description = StringField('seeking_description')
     facebook_link = StringField('facebook_link')
@@ -178,10 +178,9 @@ class VenueForm(FlaskForm):
 
 class ShowForm(FlaskForm):
     name = StringField('name', validators=[DataRequired()])
-    venues_ = Venue.query.all()
-    venues = SelectField('venue', choices=[(v.id, v.name) for v in venues_], validators=[DataRequired()])
-    artists_ = Artist.query.all()
-    artists = SelectField('artist', choices=[(a.id, a.name) for a in artists_], validators=[DataRequired()])
+    venues = SelectField('venue', choices=[], validators=[DataRequired()], coerce=int)
+    artists = SelectField('artist', choices=[], validators=[DataRequired()], coerce=int)
     description = StringField('description')
     starttime = DateTimeField('starttime', validators=[DataRequired()])
+    endtime = DateTimeField('endtime', validators=[DataRequired()])
 

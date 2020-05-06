@@ -41,6 +41,26 @@
 		</p>
 
 		{% endif %}
+		<br/>
+		{% if artist.availability|length > 0 %}
+		<div>
+			<h4 class="monospace">
+				Availability
+			</h4>
+			<small class="text-muted">Select a time to book {{artist.name}}</small>
+		</div>
+		<br/>
+
+		{% for availability in artist.availability %}
+		{% if availability != None %}
+		<ul class="list-inline">
+			<li class="list-inline-item">
+				<a href="/shows/create?artistid={{artist.id}}&start_date={{availability}}"><button class="btn btn-success">Book for {{ availability }}</button><a>
+			</li>
+		</ul>
+		{% endif %}
+		{% endfor %}
+		{% endif %}
 	</div>
 	<div class="col-sm-6">
 		<img src="{{ artist.image_link }}" alt="Venue Image" />
