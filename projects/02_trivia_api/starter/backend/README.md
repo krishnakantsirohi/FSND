@@ -72,9 +72,12 @@ This README is missing documentation of your endpoints. Below is an example for 
 
 Endpoints
 GET '/categories'
-GET ...
-POST ...
-DELETE ...
+GET '/questions'
+GET '/categories/<category_id>/questions'
+POST '/questions'
+POST '/questions/add'
+POST '/quizzes'
+DELETE '/questions/<question_id>'
 
 GET '/categories'
 - Fetches a dictionary of categories in which the keys are the ids and the value is the corresponding string of the category
@@ -86,6 +89,86 @@ GET '/categories'
 '4' : "History",
 '5' : "Entertainment",
 '6' : "Sports"}
+
+GET '/questions'
+- Fetches all the quesitons. If a category argument is provided then it returns the questions of the selected category.
+  The query is paginated to return 10 questions per page if a page argument is provided.   
+- Request Arguments: category, page
+- Returns: A json object with success, questions, total_questions, current_category, categories that contains key:value pairs. 
+
+GET '/categories/<category_id>/questions'
+- Fetches all the questions of a selected category. 
+- Request Arguments: None
+- Returns: A json object conatining current_catergory with all the questions from the selected category.
+{
+  "current_category": "Geography",
+  "questions": [
+    {
+      "answer": "Lake Victoria",
+      "category": 3,
+      "difficulty": 2,
+      "id": 13,
+      "question": "What is the largest lake in Africa?"
+    },
+    {
+      "answer": "The Palace of Versailles",
+      "category": 3,
+      "difficulty": 3,
+      "id": 14,
+      "question": "In which royal palace would you find the Hall of Mirrors?"
+    },
+    {
+      "answer": "Agra",
+      "category": 3,
+      "difficulty": 2,
+      "id": 15,
+      "question": "The Taj Mahal is located in which Indian city?"
+    }
+  ],
+  "success": true,
+  "total_questions": 3
+}
+
+
+POST '/questions'
+- Fetches all the questions that matches the searchTerm.
+- Request Arguments: searchTerm
+- Returns: A json object containing all the questions that matches the search term.
+
+
+POST '/questions/add'
+- Creates a new question into the database.
+- Request Arguments: None
+- Returns: A json object specifying the success and message. 
+{
+  'success': True,
+  'message': 'Question added successfully'
+}
+
+POST '/quizzes'
+- Gets a question from the database based on the selected category.
+- Request Arguments: json object containing previous_questions, current_questions, category.
+- Returns: A question from the selected category.
+{
+previousQuestions: [],
+question: {
+            answer: 'Apollo 13',
+            category: 5,
+            difficulty: 4,
+            id: 2,
+            question: 'What movie earned Tom Hanks his third straight Oscar nomination, in 1996?'
+          },
+success: True
+}
+
+DELETE '/questions/<question_id>'
+- Deletes the selected question from the database.
+- Request Arguments: None
+- Returns: A json object specifying the success and message. 
+{
+   'success': True,
+   'message': 'Removed question with ID '+question_id
+}
 
 ```
 

@@ -145,7 +145,7 @@ def create_app(test_config=None):
             'success': True,
             'questions': questions,
             'total_questions': len(questions),
-            'current_category': 'current_category'
+            'current_category': questions.category
         })
 
     '''
