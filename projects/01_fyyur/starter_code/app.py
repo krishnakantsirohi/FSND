@@ -17,6 +17,7 @@ from flask_wtf import Form
 from datetime import datetime, date
 from forms import *
 import config
+from models import setup_db, Artist, Show, Venue
 
 # ----------------------------------------------------------------------------#
 # App Config.
@@ -25,77 +26,13 @@ import config
 app = Flask(__name__)
 moment = Moment(app)
 app.config.from_object(config.DatabaseConfig)
-db = SQLAlchemy(app)
-
+db = setup_db(app)
 migrate = Migrate(db=db, app=app)
-
-
-# ----------------------------------------------------------------------------#
-# Models.
-# ----------------------------------------------------------------------------#
-class Venue(db.Model):
-    __tablename__ = 'Venue'
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String, nullable=False)
-    genres = db.Column(db.String, nullable=False)
-    city = db.Column(db.String(120), nullable=False)
-    state = db.Column(db.String(120), nullable=False)
-    address = db.Column(db.String(120), nullable=False)
-    phone = db.Column(db.String(120))
-    seeking_talent = db.Column(db.Boolean, default=False, nullable=False)
-    seeking_description = db.Column(db.String)
-    website = db.Column(db.String)
-    image_link = db.Column(db.String(500))
-    facebook_link = db.Column(db.String(120))
-    createddatetime = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
-    shows = db.relationship('Show', cascade="save-update, merge, delete")
-
-    def __repr__(self):
-        return f'<Venue {self.id} {self.name} {self.city} {self.state} {self.address} {self.phone} {self.image_link} {self.facebook_link}>'
-
-
-class Artist(db.Model):
-    __tablename__ = 'Artist'
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String, nullable=False)
-    city = db.Column(db.String(120), nullable=False)
-    state = db.Column(db.String(120), nullable=False)
-    phone = db.Column(db.String(120))
-    genres = db.Column(db.String(120))
-    availability = db.Column(db.String)
-    website = db.Column(db.String)
-    seeking_venue = db.Column(db.Boolean, default=False, nullable=False)
-    seeking_description = db.Column(db.String)
-    image_link = db.Column(db.String(500))
-    facebook_link = db.Column(db.String(120))
-    createddatetime = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
-    shows = db.relationship('Show', cascade="save-update, merge, delete")
-
-    def __repr__(self):
-        return f'<Artist {self.id} {self.name} {self.city} {self.state} {self.phone} {self.genres} {self.image_link} {self.facebook_link}>'
-
-
-class Show(db.Model):
-    __tablename__ = 'Show'
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String, nullable=False)
-    starttime = db.Column(db.DateTime, nullable=False)
-    endtime = db.Column(db.DateTime, nullable=False)
-    description = db.Column(db.String)
-    venue_id = db.Column(db.Integer, db.ForeignKey('Venue.id'), nullable=False)
-    artist_id = db.Column(db.Integer, db.ForeignKey('Artist.id'), nullable=False)
-    createddatetime = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
-
-    def __repr__(self):
-        return f'<Show {self.id} {self.name} {self.starttime} {self.endtime} {self.description} {self.venue_id} {self.artist_id}>'
-
-
 # ----------------------------------------------------------------------------#
 # Filters.
 # ----------------------------------------------------------------------------#
 
 def format_datetime(date, format='medium'):
-    print(type(date))
     if type(date) is str:
         date = dateutil.parser.parse(date)
     if format == 'full':
@@ -122,6 +59,7 @@ app.jinja_env.filters['datetime'] = format_datetime
 
 @app.route('/')
 def index():
+    # Entry point for the app
     artists_ = Artist.query.order_by(Artist.createddatetime.desc()).limit(10).all()
     venues_ = Venue.query.order_by(Venue.createddatetime.desc()).limit(10).all()
     return render_template('pages/home.html', artists=artists_, venues=venues_)
@@ -132,6 +70,7 @@ def index():
 
 @app.route('/venues')
 def venues():
+    # Gets all the venues present in the db
     error = False
     try:
         body = []
@@ -243,6 +182,7 @@ def show_venue(venue_id):
 
 @app.route('/venues/create', methods=['GET'])
 def create_venue_form():
+    # Renders a Venue form for new Venue submission
     form = VenueForm()
     return render_template('forms/new_venue.html', form=form)
 
@@ -290,6 +230,7 @@ def create_venue_submission():
 
 @app.route('/venues/<venue_id>', methods=['DELETE'])
 def delete_venue(venue_id):
+    # Deletes a venue from the db
     error = False
     try:
         Show.query.filter_by(venue_id=venue_id).delete()
@@ -314,6 +255,7 @@ def delete_venue(venue_id):
 #  ----------------------------------------------------------------
 @app.route('/artists')
 def artists():
+    # Displays all the artists present in the db
     error = False
     try:
         artists_ = Artist.query.all()
@@ -364,6 +306,7 @@ def search_artists():
 
 @app.route('/artists/<int:artist_id>')
 def show_artist(artist_id):
+    # Displays the artist information for the given artist_id
     error = False
     try:
         '''artists_ = Artist.query.with_entities(Artist, Show, Venue).join(Show, Show.artist_id == Artist.id) \
@@ -382,7 +325,7 @@ def show_artist(artist_id):
             "genres": artists_.genres.split(", "),
             "city": artists_.city,
             "state": artists_.state,
-            "phone": None if not artists_.phone else artists_.phone,
+            "phone": None if not artists_.phone else '+1 '+artists_.phone,
             "website": '' if artists_.website == 'NULL' else artists_.website,
             "facebook_link": ' ' if artists_.facebook_link == 'NULL' else artists_.facebook_link,
             "seeking_venue": artists_.seeking_venue,
@@ -411,6 +354,7 @@ def show_artist(artist_id):
 #  ----------------------------------------------------------------
 @app.route('/artists/<int:artist_id>/edit', methods=['GET'])
 def edit_artist(artist_id):
+    # Renders a artist from to edit the information with id = artist_id
     try:
         form = ArtistForm()
         artist = Artist.query.filter_by(id=artist_id).all()[0]
@@ -471,6 +415,7 @@ def edit_artist_submission(artist_id):
 
 @app.route('/venues/<int:venue_id>/edit', methods=['GET'])
 def edit_venue(venue_id):
+    # Renders Venue form to edit the information about a Venue with id = Venue_id
     error = False
     try:
         venue = Venue.query.filter_by(id=venue_id).all()[0]
@@ -539,13 +484,14 @@ def edit_venue_submission(venue_id):
 
 @app.route('/artists/create', methods=['GET'])
 def create_artist_form():
+    # Renders a Artist form to add a new artist into db
     form = ArtistForm()
     return render_template('forms/new_artist.html', form=form)
 
 
 @app.route('/artists/create', methods=['POST'])
 def create_artist_submission():
-    # called upon submitting the new artist listing form
+    # Enters the information about the new artist into the database
     error = False
     try:
         form = ArtistForm()
