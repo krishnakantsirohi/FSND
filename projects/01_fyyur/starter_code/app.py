@@ -33,7 +33,6 @@ migrate = Migrate(db=db, app=app)
 # ----------------------------------------------------------------------------#
 # Models.
 # ----------------------------------------------------------------------------#
-
 class Venue(db.Model):
     __tablename__ = 'Venue'
     id = db.Column(db.Integer, primary_key=True)
