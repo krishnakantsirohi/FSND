@@ -6,7 +6,6 @@ import json
 import sys
 
 import dateutil.parser
-import phonenumbers
 from babel import dates
 from flask import Flask, render_template, request, Response, flash, redirect, url_for, jsonify, session
 from flask_moment import Moment
@@ -17,6 +16,7 @@ from logging import Formatter, FileHandler
 from flask_wtf import Form
 from datetime import datetime, date
 from forms import *
+import config
 
 # ----------------------------------------------------------------------------#
 # App Config.
@@ -24,7 +24,7 @@ from forms import *
 
 app = Flask(__name__)
 moment = Moment(app)
-app.config.from_object('config')
+app.config.from_object(config.DatabaseConfig)
 db = SQLAlchemy(app)
 
 migrate = Migrate(db=db, app=app)
@@ -95,24 +95,15 @@ class Show(db.Model):
 # Filters.
 # ----------------------------------------------------------------------------#
 
-def format_datetime(value, format='medium'):
-    date = dateutil.parser.parse(value)
+def format_datetime(date, format='medium'):
+    print(type(date))
+    if type(date) is str:
+        date = dateutil.parser.parse(date)
     if format == 'full':
         format = "EEEE MMMM, d, y 'at' h:mma"
     elif format == 'medium':
         format = "EE MM, dd, y h:mma"
     return dates.format_datetime(date, format, locale='en_us')
-
-
-def validatePhoneNumber(num):
-    try:
-        phone = phonenumbers.parse(num, "US")
-        if phonenumbers.is_possible_number(phone):
-            return int(str(phone.country_code) + str(phone.national_number))
-        else:
-            return False
-    except:
-        return False
 
 
 def todate(str):
@@ -168,6 +159,7 @@ def venues():
     except:
         error = False
         print(sys.exc_info())
+        db.session.rollback()
     finally:
         db.session.close()
     if not error:
@@ -213,31 +205,9 @@ def show_venue(venue_id):
     # shows the venue page with the given venue_id
     error = False
     try:
-        venue = Venue.query.filter_by(id=venue_id).all()[0]
-        shows = Show.query.join(Venue).filter_by(id=venue_id).all()
-        past_shows = []
-        upcoming_shows = []
-        past_shows_count = 0
-        upcoming_shows_count = 0
-        for s in shows:
-            artist = Artist.query.filter_by(id=s.artist_id).all()[0]
-            if s.starttime < datetime.now():
-                past_shows.append({
-                    "artist_id": s.artist_id,
-                    "artist_name": artist.name,
-                    "artist_image_link": artist.image_link,
-                    "starttime": str(s.starttime),
-
-                })
-                past_shows_count += 1
-            else:
-                upcoming_shows.append({
-                    "artist_id": s.artist_id,
-                    "artist_name": artist.name,
-                    "artist_image_link": artist.image_link,
-                    "starttime": str(s.starttime)
-                })
-                upcoming_shows_count += 1
+        venue = Venue.query.get(venue_id)
+        past_shows = list(filter(lambda x: x.starttime < datetime.today(), venue.shows))
+        upcoming_shows = list(filter(lambda x: x.starttime >= datetime.today(), venue.shows))
         data = {
             "id": venue.id,
             "name": venue.name,
@@ -245,7 +215,7 @@ def show_venue(venue_id):
             "address": venue.address,
             "city": venue.city,
             "state": venue.state,
-            "phone": ('+' + venue.phone[0] + '-' + venue.phone[1:] if len(venue.phone) > 10 else None),
+            "phone": ('+1 ' + venue.phone if len(venue.phone) > 10 else None),
             "website": '' if venue.website == 'NULL' else venue.website,
             "facebook_link": '' if venue.facebook_link == 'NULL' else venue.facebook_link,
             "seeking_talent": venue.seeking_talent,
@@ -254,8 +224,8 @@ def show_venue(venue_id):
 
             "past_shows": past_shows,
             "upcoming_shows": upcoming_shows,
-            "past_shows_count": past_shows_count,
-            "upcoming_shows_count": upcoming_shows_count,
+            "past_shows_count": len(past_shows),
+            "upcoming_shows_count": len(upcoming_shows),
         }
     except:
         error = True
@@ -284,23 +254,24 @@ def create_venue_submission():
     # modify data to be the data object returned from db insertion
     error = False
     try:
+        form = VenueForm()
+        form.validate_on_submit()
+        if 'phone' in form.errors:
+            flash(form.errors['phone'][0])
+            return create_venue_form()
         data = request.form
-        phone = validatePhoneNumber(data['phone'])
-        if phone is not None:
-            venue = Venue(name=data['name'], city=data['city'], state=data['state'],
-                          address=data['address'], phone=phone,
-                          genres=', '.join(data.getlist('genres')),
-                          image_link='' if data['image_link'] == 'NULL' else data['image_link'],
-                          facebook_link='' if data['facebook_link'] == 'NULL' else data['facebook_link'],
-                          website='' if data['website'] == 'NULL' else data['website'],
-                          seeking_talent=data['seeking_talent'] == 'Yes',
-                          seeking_description='' if data['seeking_description'] == 'NULL' else data[
-                              'seeking_description'])
+        venue = Venue(name=data['name'], city=data['city'], state=data['state'],
+                      address=data['address'], phone=data['phone'],
+                      genres=', '.join(data.getlist('genres')),
+                      image_link='' if data['image_link'] == 'NULL' else data['image_link'],
+                      facebook_link='' if data['facebook_link'] == 'NULL' else data['facebook_link'],
+                      website='' if data['website'] == 'NULL' else data['website'],
+                      seeking_talent=data['seeking_talent'] == 'Yes',
+                      seeking_description='' if data['seeking_description'] == 'NULL' else data[
+                          'seeking_description'])
 
-            db.session.add(venue)
-            db.session.commit()
-        else:
-            error = True
+        db.session.add(venue)
+        db.session.commit()
     except:
         error = True
         db.session.rollback()
@@ -315,9 +286,7 @@ def create_venue_submission():
         # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
         return redirect(url_for('index'))
     else:
-        flash('Phone Number ' + request.form['phone'] + ' is invalid.')
-        form = VenueForm()
-        return render_template('forms/new_venue.html', form=form)
+        return render_template('errors/404.html')
 
 
 @app.route('/venues/<venue_id>', methods=['DELETE'])
@@ -398,39 +367,23 @@ def search_artists():
 def show_artist(artist_id):
     error = False
     try:
-        artists_ = Artist.query.with_entities(Artist, Show, Venue).join(Show, Show.artist_id == Artist.id) \
+        '''artists_ = Artist.query.with_entities(Artist, Show, Venue).join(Show, Show.artist_id == Artist.id) \
             .join(Venue, Venue.id == Show.venue_id) \
-            .filter(Show.artist_id == artist_id).all()
-        past_shows = []
-        upcoming_shows = []
-        past_shows_count = 0
-        upcoming_shows_count = 0
-        for s in artists_:
-            if s.Show.starttime < datetime.now():
-                past_shows.append({
-                    "venue_id": s.Venue.id,
-                    "venue_name": s.Venue.name,
-                    "venue_image_link": s.Venue.image_link,
-                    "start_time": str(s.Show.starttime)
-                })
-                past_shows_count += 1
-            else:
-                upcoming_shows.append({
-                    "venue_id": s.Venue.id,
-                    "venue_name": s.Venue.name,
-                    "venue_image_link": s.Venue.image_link,
-                    "start_time": str(s.Show.starttime)
-                })
-                upcoming_shows_count += 1
-        artists_ = Artist.query.filter_by(id=artist_id).all()[0]
-        phone = validatePhoneNumber(artists_.phone)
+            .filter(Show.artist_id == artist_id)'''
+        artists_ = Artist.query.get(artist_id)
+        shows = Show.query.with_entities(Venue.id.label('id'), Venue.name.label('Venue'),
+                                         Venue.image_link.label('image_link'), Show.starttime.label('starttime')).join(
+            Venue, Venue.id == Show.venue_id).filter(Show.artist_id == artist_id)
+        past_shows = list(filter(lambda x: x.starttime < datetime.today(), shows))
+        upcoming_shows = list(filter(lambda x: x.starttime >= datetime.today(), shows))
+
         data = {
             "id": artist_id,
             "name": artists_.name,
             "genres": artists_.genres.split(", "),
             "city": artists_.city,
             "state": artists_.state,
-            "phone": None if not phone else phone,
+            "phone": None if not artists_.phone else artists_.phone,
             "website": '' if artists_.website == 'NULL' else artists_.website,
             "facebook_link": ' ' if artists_.facebook_link == 'NULL' else artists_.facebook_link,
             "seeking_venue": artists_.seeking_venue,
@@ -441,8 +394,8 @@ def show_artist(artist_id):
             "image_link": '' if artists_.image_link == 'NULL' else artists_.image_link,
             "past_shows": past_shows,
             "upcoming_shows": upcoming_shows,
-            "past_shows_count": past_shows_count,
-            "upcoming_shows_count": upcoming_shows_count,
+            "past_shows_count": len(past_shows),
+            "upcoming_shows_count": len(upcoming_shows),
         }
     except:
         error = True
@@ -485,16 +438,17 @@ def edit_artist_submission(artist_id):
     # artist record with ID <artist_id> using the new attributes
     error = False
     try:
+        form = ArtistForm()
+        form.validate_on_submit()
+        if 'phone' in form.errors:
+            flash(form.errors['phone'][0])
+            return edit_artist(artist_id)
         artist = Artist.query.filter_by(id=artist_id).all()[0]
         data = request.form
-        p = validatePhoneNumber(data['phone'])
-        if data['phone'] != '' and not p:
-            flash('Invalid phone number ' + data['phone'])
-            return edit_artist(artist_id)
         artist.name = data['name']
         artist.city = data['city']
         artist.state = data['state']
-        artist.phone = '' if data['phone'] == '' else p
+        artist.phone = data['phone']
         artist.genres = ', '.join(data.getlist('genres'))
         artist.seeking_venue = data['seeking_venue'] == 'Yes'
         artist.seeking_description = '' if data['seeking_description'] == 'NULL' else data['seeking_description']
@@ -550,17 +504,18 @@ def edit_venue_submission(venue_id):
     # venue record with ID <venue_id> using the new attributes
     error = False
     try:
+        form = VenueForm()
+        form.validate_on_submit()
+        if 'phone' in form.errors:
+            flash(form.errors['phone'][0])
+            return edit_venue(venue_id)
         data = request.form
         venue = Venue.query.get(venue_id)
-        phone = validatePhoneNumber(data['phone'])
-        if not phone:
-            flash('Invalid phone number ' + data['phone'])
-            return edit_venue(venue_id)
         venue.name = data['name']
         venue.city = data['city']
         venue.state = data['state']
         venue.address = data['address']
-        venue.phone = '' if not phone else phone
+        venue.phone = data['phone']
         venue.genres = ', '.join(data.getlist('genres'))
         venue.seeking_description = '' if data['seeking_description'] == 'NULL' else data['seeking_description']
         venue.seeking_talent = data['seeking_talent'] == 'Yes'
@@ -594,14 +549,14 @@ def create_artist_submission():
     # called upon submitting the new artist listing form
     error = False
     try:
+        form = ArtistForm()
+        form.validate_on_submit()
+        if 'phone' in form.errors:
+            flash(form.errors['phone'][0])
+            return create_artist_form()
         data = request.form
-        phone = validatePhoneNumber(data['phone'])
-        if data['phone'] != '' and not phone:
-            flash('Invalid Phone Number ' + data['phone'])
-            form = ArtistForm(data)
-            return render_template('forms/new_artist.html', form=form)
         artist = Artist(name=data['name'], city=data['city'], state=data['state'],
-                        phone='' if not phone else phone, genres=', '.join(data.getlist('genres')),
+                        phone=data['phone'], genres=', '.join(data.getlist('genres')),
                         availability=data['availability'],
                         image_link='' if data['image_link'] == 'NULL' else data['image_link'],
                         facebook_link='' if data['facebook_link'] == 'NULL' else data['facebook_link'],
@@ -661,8 +616,8 @@ def shows():
 def create_shows():
     # renders form. do not touch.
     form = ShowForm()
-    artists_ = Artist.query.all()
-    venues_ = Venue.query.all()
+    artists_ = Artist.query.order_by(Artist.id).all()
+    venues_ = Venue.query.order_by(Venue.id).all()
     artistid = request.args.get('artistid', 1, int)
     start_date = request.args.get('start_date', datetime.now(), todate)
     form.artists.choices = [(a.id, a.name) for a in artists_]
@@ -691,7 +646,7 @@ def create_show_submission():
             elif t1 <= t3 <= t4:
                 flash('End time overlaps with another show')
                 return create_shows()
-        artists_ = Artist.query.filter(Artist.id==data['artists']).one_or_none()
+        artists_ = Artist.query.filter(Artist.id == data['artists']).one_or_none()
         ar = artists_.availability.split(", ")
         dt = data['starttime'][:10]
         if dt in ar:
@@ -718,9 +673,45 @@ def create_show_submission():
         return render_template('errors/500.html')
 
 
+@app.errorhandler(400)
+def bad_request(error):
+    flash('Error 400: Bad Request')
+    return render_template('pages/home.html'), 400
+
+
+@app.errorhandler(401)
+def unauthorized(error):
+    flash('Error 401: Unauthorized')
+    return render_template('pages/home.html'), 401
+
+
+@app.errorhandler(403)
+def forbidden(error):
+    flash('Error 403: Access Forbidden')
+    return render_template('pages/home.html'), 403
+
+
 @app.errorhandler(404)
 def not_found_error(error):
     return render_template('errors/404.html'), 404
+
+
+@app.errorhandler(405)
+def invalid_method(error):
+    flash('Error 405: Inavlid Method')
+    return render_template('pages/home.html'), 405
+
+
+@app.errorhandler(409)
+def duplicte_resource(error):
+    flash('Error 409: Duplicate Resource')
+    return render_template('pages/home.html'), 409
+
+
+@app.errorhandler(422)
+def unprocessable(error):
+    flash('Error 422: Unprocessable request')
+    return render_template('pages/home.html'),422
 
 
 @app.errorhandler(500)
