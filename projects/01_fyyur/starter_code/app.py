@@ -7,7 +7,7 @@ import sys
 
 import dateutil.parser
 from babel import dates
-from flask import Flask, render_template, request, Response, flash, redirect, url_for, jsonify, session
+from flask import (Flask, render_template, request, flash, redirect, url_for, jsonify)
 from flask_moment import Moment
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -711,7 +711,7 @@ def duplicte_resource(error):
 @app.errorhandler(422)
 def unprocessable(error):
     flash('Error 422: Unprocessable request')
-    return render_template('pages/home.html'),422
+    return render_template('pages/home.html'), 422
 
 
 @app.errorhandler(500)
