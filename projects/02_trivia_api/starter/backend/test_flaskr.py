@@ -47,6 +47,13 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(data['success'], False)
         self.assertEqual(data['message'], 'Unprocessable')
 
+    def test_error_500_Internal_Server(self):
+        response = self.client().post('/questions', json={'seahTerm': 'what'})
+        data = json.loads(response.data)
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(data['success'], False)
+        self.assertEqual(data['message'], 'Internal Server Error')
+
     def test_get_categories(self):
         response = self.client().get('/categories')
         data = json.loads(response.data)
@@ -65,28 +72,6 @@ class TriviaTestCase(unittest.TestCase):
         self.assertTrue(data['current_category'])
         self.assertTrue(data['categories'])
 
-    '''def test_delete_question(self):
-        response = self.client().get('/questions/'+23)
-        data = json.loads(response)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(data['success'], True)
-        self.assertEqual(data['message'], 'Removed question with ID 23')'''
-
-    def test_get_questions_by_category(self):
-        response = self.client().get('/categories/5/questions')
-        data = json.loads(response.data)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(data['success'], True)
-        self.assertTrue(data['questions'])
-        self.assertTrue(data['current_category'])
-
-    def test_get_search_question(self):
-        response = self.client().post('/questions', json={'searchTerm': 'heaviest'})
-        data = json.loads(response.data)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(data['success'], True)
-        self.assertTrue(data['questions'])
-
     def test_post_question(self):
         response = self.client().post('/questions/add', json={
             'question': 'What is the capital of Texas?',
@@ -97,6 +82,30 @@ class TriviaTestCase(unittest.TestCase):
         data = json.loads(response.data)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(data['message'], 'Question added successfully')
+
+    def test_delete_question(self):
+        s1 = Question.query.order_by(Question.id.desc()).limit(1).one_or_none()
+        s1 = str(s1.id)
+        response = self.client().delete('/questions/'+s1)
+        data = json.loads(response.data)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(data['success'], True)
+        self.assertEqual(data['message'], 'Removed question with ID '+s1)
+
+    def test_get_questions_by_category(self):
+        response = self.client().get('/categories/5/questions')
+        data = json.loads(response.data)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(data['success'], True)
+        self.assertTrue(data['questions'])
+        self.assertTrue(data['current_category'])
+
+    def test_get_search_question(self):
+        response = self.client().post('/questions', json={'searchTerm': 'what'})
+        data = json.loads(response.data)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(data['success'], True)
+        self.assertTrue(data['questions'])
 
     def test_play_quiz(self):
         response1 = self.client().post('/quizzes', json={'previous_questions': [], 'quiz_category': {'type': 'Entertainment', 'type_id': 5}})

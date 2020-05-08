@@ -4,6 +4,7 @@ import sys
 from flask import Flask, request, abort, jsonify
 from flask_cors import CORS
 from random import seed, randint
+from flask_migrate import Migrate
 
 from models import setup_db, Question, Category
 
@@ -14,7 +15,7 @@ def create_app(test_config=None):
     # create and configure the app
     app = Flask(__name__)
     db = setup_db(app)
-
+    migrate = Migrate(app, db)
     '''
   @TODO: Set up CORS. Allow '*' for origins. Delete the sample route after completing the TODOs
   '''
@@ -137,15 +138,15 @@ def create_app(test_config=None):
     @app.route('/questions', methods=['POST'])
     def get_search_question():
         query = ('%' + request.get_json()['searchTerm'] + '%')
-        questions = Question.query.filter(Question.question.ilike(query)).all()
+        questions = Question.query.with_entities(Question, Category).join(Category, Category.id == Question.category).filter(Question.question.ilike(query)).all()
         if len(questions) == 0:
             abort(404)
-        questions = [q.format() for q in questions]
+        qs = [q.Question.format() for q in questions]
         return jsonify({
             'success': True,
-            'questions': questions,
-            'total_questions': len(questions),
-            'current_category': questions.category
+            'questions': qs,
+            'total_questions': len(qs),
+            'current_category': questions[0].Category.type
         })
 
     '''
