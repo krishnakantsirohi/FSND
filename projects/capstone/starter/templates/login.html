@@ -1,0 +1,15 @@
+{% extends 'main.html' %}
+{% block title %}Casting Agency{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-sm-6">
+        <form method="get" action="/login">
+            <button type="submit" class="btn btn-primary">Login</button>
+        </form>
+    </div>
+    <div class="col-sm-6 hidden-sm hidden-xs">
+        <img id="front-splash" src="{{ url_for('static',filename='img/front-splash.jpg') }}" alt="Front Photo of Musical Band" />
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends 'main.html' %}
+{% block title %}The Casting Agency | Actors{% endblock %}
+{% block content %}
+<ul class="items">
+    {% if 'actors' in items %}
+        {% for item in items.actors %}
+        <li class="item">
+            <i class="fas fa-users"></i>
+            <a href="/actors/{{item.id}}/show">
+                <div class="item">
+                    <h5>{{ item.name }}</h5>
+                </div>
+            </a>
+        </li>
+        {% endfor %}
+    {% else %}
+        {% for item in items.movies %}
+        <div class="item">
+
+            <a href="/movies/{{item.id}}/show">
+                <i class="fas fa-users item"></i><h5>{{ item.title }}</h5>
+            </a>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+</ul>
+{% endblock %}

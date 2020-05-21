@@ -1,0 +1,51 @@
+{% extends 'main.html' %}
+{% block title %}The Casting Agency{% endblock %}
+{% block content %}
+<div class="row">
+    {% if 'actor' in item %}
+    <div class="col-sm-6">
+
+        <h1 class="monospace">
+            {{ item.actor.name }}
+            {% if 'modify:actors' in permissions %}
+            <a href="/actors/{{item.actor.id}}/edit"><i class="fas fa-pencil-alt"></i></a>
+            {%endif%}
+            {% if 'delete:actors' in permissions %}
+            <a href="/actors/{{ item.actor.id }}/delete"><i class="far fa-trash-alt" style="color: red"></i></a>
+            {%endif%}
+        </h1>
+
+        <p class="subtitle">
+            ID: {{ item.actor.id }}
+        </p>
+    </div>
+    <div class="col-sm-6">
+        <img src="{{ item.actor.image_link }}" alt="Image" width="500px" height="650px"/>
+    </div>
+    {% else %}
+    <div class="col-sm-6">
+        {% if 'modify:movies' in permissions %}
+        <h1 class="monospace">
+            {{ item.movie.title }}
+            {% if 'modify:movies' in permissions %}
+            <a href="/movies/{{item.movie.id}}/edit"><i class="fas fa-pencil-alt"></i></a>
+            {%endif%}
+            {% if 'delete:movies' in permissions %}
+            <a href="/movies/{{ item.movie.id }}/delete"><i class="far fa-trash-alt" style="color: red"></i></a>
+            {% endif %}
+        </h1>
+        {% endif %}
+
+        <p class="subtitle">
+            ID: {{ item.movie.id }}
+        </p>
+        <p class="subtitle">
+            Release date: {{ item.movie.release_date }}
+        </p>
+    </div>
+    <div class="col-sm-6">
+        <img src="{{ item.movie.image_link }}" alt="Venue Image" width="500px" height="650px"/>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
