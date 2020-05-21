@@ -24,7 +24,7 @@ from models import Movies, Actors
 
 from models import setup_db
 
-url = 'http://localhost:5000'
+url = 'http://0.0.0.0:5000'
 
 ENV_FILE = find_dotenv()
 if ENV_FILE:
@@ -447,4 +447,4 @@ def autherror(error):
 
 
 if __name__ == "__main__":
-    app.run(host='localhost', port=env.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=env.get('PORT', 5000))
