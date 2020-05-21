@@ -26,7 +26,7 @@ class Movies(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String, nullable=False)
     release_date = db.Column(db.DateTime, nullable=False)
-    image_link = db.Column(db.String(500))
+    image_link = db.Column(db.String)
     createddatetime = db.Column(db.Date, nullable=False, default=datetime.utcnow())
 
     def __init__(self, title, release_date, image_link=None):
@@ -63,7 +63,7 @@ class Actors(db.Model):
     name = db.Column(db.String, nullable=False)
     age = db.Column(db.Integer, nullable=False)
     gender = db.Column(db.String(10), nullable=False)
-    image_link = db.Column(db.String(500))
+    image_link = db.Column(db.String)
     createddatetime = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
 
     def __init__(self, name, age, gender, image_link=None):
