@@ -1,5 +1,6 @@
 """Python Flask WebApp Auth0 integration example
 """
+import os
 from functools import wraps
 
 import requests
@@ -7,15 +8,13 @@ import json
 import auth as auth
 from os import environ as env
 from flask_cors import CORS
-from flask_migrate import Migrate
 from werkzeug.exceptions import HTTPException
 from forms import ActorForm, MovieForm
 from dotenv import load_dotenv, find_dotenv
 from flask import Flask, jsonify, redirect, render_template, session, url_for, request, abort, flash
 from authlib.integrations.flask_client import OAuth
 from six.moves.urllib.parse import urlencode
-
-import config
+from config import BaseConfig
 
 import constants
 
@@ -24,7 +23,7 @@ from models import Movies, Actors
 
 from models import setup_db
 
-url = 'http://0.0.0.0:5000'
+url = 'http://localhost:5000'#'http://the-casting-agency.herokuapp.com'
 
 ENV_FILE = find_dotenv()
 if ENV_FILE:
@@ -38,13 +37,18 @@ AUTH0_BASE_URL = 'https://' + AUTH0_DOMAIN
 AUTH0_AUDIENCE = env.get(constants.AUTH0_AUDIENCE)
 
 app = Flask(__name__)
-app.config.from_object(config.DatabaseConfig)
-app.secret_key = constants.SECRET_KEY
-app.debug = True
-db = setup_db(app)
-migrate = Migrate(app=app, db=db)
+app.config.from_object(BaseConfig)
+db = setup_db(app=app)
 CORS(app)
 
+
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin',
+                         'Content-Type, Authorization')
+    response.headers.add('Access-Control-Allow-Methods',
+                     'GET, POST, PATCH, DELETE, OPTIONS')
+    return response
 
 @app.errorhandler(Exception)
 def handle_auth_error(ex):
@@ -118,7 +122,7 @@ def login():
 @app.route('/logout')
 def logout():
     session.clear()
-    params = {'returnTo': url_for(endpoint='index', _external=True), 'client_id': '351ZOBTYdth0WmwTAv2O6f79ARyQkwGI'}
+    params = {'returnTo': url_for(endpoint='index', _external=True), 'client_id': AUTH0_CLIENT_ID}
     return redirect(auth0.api_base_url + '/v2/logout?' + urlencode(params))
 
 
@@ -447,4 +451,5 @@ def autherror(error):
 
 
 if __name__ == "__main__":
-    app.run(port=env.get('PORT', 5000))
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='localhost', port=port, debug=True)

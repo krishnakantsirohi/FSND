@@ -12,6 +12,7 @@ if ENV_FILE:
     load_dotenv(ENV_FILE)
 
 AUTH0_AUDIENCE = env.get(constants.AUTH0_AUDIENCE)
+AUTH0_DOMAIN = env.get(constants.AUTH0_DOMAIN)
 ALGORITHMS = ['RS256']
 
 
@@ -65,7 +66,7 @@ def check_permissions(permission, payload):
 
 def verify_decode_jwt(token):
     payload = None
-    jsonurl = urlopen(f'https://krishnakant.auth0.com/.well-known/jwks.json')
+    jsonurl = urlopen(f'https://' + AUTH0_DOMAIN + '/.well-known/jwks.json')
     jwks = json.loads(jsonurl.read())
     unverified_header = jwt.get_unverified_header(token)
     rsa_key = {}

@@ -1,6 +1,10 @@
 from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
-from config import DatabaseConfig
+import os
+
+SECRET_KEY = os.urandom(32)
+database_path = 'postgres://irtvazxzctigea:9e2ba1473974c795047613cc31c9ef2f16f09f31b3704359b44e167bdc3ea93c@ec2-18-210-214-86.compute-1.amazonaws.com:5432/d81lojlrjp5o00'#os.environ['DATABASE_URL']
+
 db = SQLAlchemy()
 
 '''
@@ -9,16 +13,12 @@ setup_db(app)
 '''
 
 
-def setup_db(app, database_path=None):
-    if database_path is None:
-        app.config.from_object(DatabaseConfig)
-    else:
-        app.config["SQLALCHEMY_DATABASE_URI"] = database_path
-        app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+def setup_db(app, database_path=database_path):
+    app.config["SQLALCHEMY_DATABASE_URI"] = database_path
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     db.app = app
     db.init_app(app)
     db.create_all()
-    return db
 
 
 class Movies(db.Model):
