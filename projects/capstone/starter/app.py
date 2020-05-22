@@ -153,22 +153,22 @@ def show_actors():
     return render_template('listitems.html', items=actors)
 
 
-@app.route('/actors/<int:id>/show')
+@app.route('/actors/<int:actor_id>/show')
 @requires_login
-def show_actor(id):
+def show_actor(actor_id):
     actor = json.loads(
-        requests.get(url + '/actors/' + str(id),
+        requests.get(url + '/actors/' + str(actor_id),
                      headers={'Authorization':
                               'Bearer ' + session['access_token']}).text)
     return render_template('listdetails.html',
                            item=actor, permissions=session['permissions'])
 
 
-@app.route('/actors/<int:id>/edit')
+@app.route('/actors/<int:actor_id>/edit')
 @requires_login
-def edit_actor(id):
+def edit_actor(actor_id):
     actor = json.loads(
-        requests.get(url + '/actors/' + str(id),
+        requests.get(url + '/actors/' + str(actor_id),
                      headers={'Authorization':
                               'Bearer ' +
                               session['access_token']}).text)['actor']
@@ -180,11 +180,11 @@ def edit_actor(id):
     return render_template('form_actors.html', form=form)
 
 
-@app.route('/actors/<int:id>/edit', methods=['POST'])
+@app.route('/actors/<int:actor_id>/edit', methods=['POST'])
 @requires_login
-def edit_actor_submission(id):
+def edit_actor_submission(actor_id):
     data = request.form
-    req = requests.patch(url + '/actors/' + str(id),
+    requests.patch(url + '/actors/' + str(actor_id),
                          headers={'Authorization':
                                   'Bearer ' + session['access_token']},
                          json=data)
@@ -210,10 +210,10 @@ def new_actors_submission():
     return redirect(url_for('show_actor', id=resp['id']))
 
 
-@app.route('/actors/<int:id>/delete', methods=['GET'])
+@app.route('/actors/<int:actor_id>/delete', methods=['GET'])
 @requires_login
-def remove_actor(id):
-    resp = json.loads(requests.delete(url + '/actors/' + str(id),
+def remove_actor(actor_id):
+    resp = json.loads(requests.delete(url + '/actors/' + str(actor_id),
                                       headers={'Authorization':
                                                'Bearer '
                                                +
@@ -232,21 +232,21 @@ def show_movies():
     return render_template('listitems.html', items=movies)
 
 
-@app.route('/movies/<int:id>/show')
+@app.route('/movies/<int:movie_id>/show')
 @requires_login
-def show_movie(id):
+def show_movie(movie_id):
     movie = json.loads(
-        requests.get(url + '/movies/' + str(id),
+        requests.get(url + '/movies/' + str(movie_id),
                      headers={'Authorization':
                               'Bearer ' + session['access_token']}).text)
     return render_template('listdetails.html',
                            item=movie, permissions=session['permissions'])
 
 
-@app.route('/movies/<int:id>/edit')
+@app.route('/movies/<int:movie_id>/edit')
 @requires_login
-def movies_edit_form(id):
-    movie = Movies.query.get(id)
+def movies_edit_form(movie_id):
+    movie = Movies.query.get(movie_id)
     form = MovieForm()
     form.title.data = movie.title
     form.release_date.data = movie.release_date
@@ -254,15 +254,15 @@ def movies_edit_form(id):
     return render_template('form_movies.html', form=form)
 
 
-@app.route('/movies/<int:id>/edit', methods=['POST'])
+@app.route('/movies/<int:movie_id>/edit', methods=['POST'])
 @requires_login
-def movies_edit_submission(id):
+def movies_edit_submission(movie_id):
     data = request.form
-    req = requests.patch(url + '/movies/' + str(id),
+    requests.patch(url + '/movies/' + str(movie_id),
                          headers={'Authorization':
                                   'Bearer ' + session['access_token']},
                          json=data)
-    return redirect(url_for('show_movie', id=id))
+    return redirect(url_for('show_movie', id=movie_id))
 
 
 @app.route('/movies/add')
@@ -284,10 +284,10 @@ def new_movie_submission():
     return redirect(url_for('show_movie', id=resp['id']))
 
 
-@app.route('/movies/<int:id>/delete')
+@app.route('/movies/<int:movie_id>/delete')
 @requires_login
-def movies_delete(id):
-    resp = json.loads(requests.delete(url + '/movies/' + str(id),
+def movies_delete(movie_id):
+    resp = json.loads(requests.delete(url + '/movies/' + str(movie_id),
                                       headers={'Authorization':
                                                'Bearer ' +
                                                session['access_token']}).text)
@@ -307,10 +307,10 @@ def get_actors(permissions):
     })
 
 
-@app.route('/actors/<int:id>', methods=['GET'])
+@app.route('/actors/<int:actor_id>', methods=['GET'])
 @auth.requires_auth('get:actors')
-def get_actor(permissions, id):
-    actor = Actors.query.filter(Actors.id == id).one_or_none()
+def get_actor(permissions, actor_id):
+    actor = Actors.query.filter(Actors.id == actor_id).one_or_none()
     if actor is None:
         abort(404)
     return jsonify({
