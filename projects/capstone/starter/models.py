@@ -3,7 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 import os
 
 SECRET_KEY = os.urandom(32)
-database_path = 'postgres://irtvazxzctigea:9e2ba1473974c795047613cc31c9ef2f16f09f31b3704359b44e167bdc3ea93c@ec2-18-210-214-86.compute-1.amazonaws.com:5432/d81lojlrjp5o00'#os.environ['DATABASE_URL']
+database_path = os.environ['DATABASE_URL']
 
 db = SQLAlchemy()
 
@@ -27,7 +27,9 @@ class Movies(db.Model):
     title = db.Column(db.String, nullable=False)
     release_date = db.Column(db.DateTime, nullable=False)
     image_link = db.Column(db.String)
-    createddatetime = db.Column(db.Date, nullable=False, default=datetime.utcnow())
+    createddatetime = db.Column(db.Date,
+                                nullable=False,
+                                default=datetime.utcnow())
 
     def __init__(self, title, release_date, image_link=None):
         self.title = title
@@ -54,7 +56,11 @@ class Movies(db.Model):
         }
 
     def __repr__(self):
-        return f'<Venue {self.id} {self.title} {self.release_date} {self.image_link} {self.createddatetime}>'
+        return f'<Venue {self.id}' \
+               f' {self.title}' \
+               f' {self.release_date}' \
+               f' {self.image_link}' \
+               f' {self.createddatetime}>'
 
 
 class Actors(db.Model):
@@ -64,7 +70,9 @@ class Actors(db.Model):
     age = db.Column(db.Integer, nullable=False)
     gender = db.Column(db.String(10), nullable=False)
     image_link = db.Column(db.String)
-    createddatetime = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
+    createddatetime = db.Column(db.DateTime,
+                                nullable=False,
+                                default=datetime.utcnow())
 
     def __init__(self, name, age, gender, image_link=None):
         self.name = name
@@ -93,4 +101,9 @@ class Actors(db.Model):
         }
 
     def __repr__(self):
-        return f'<Artist {self.id} {self.name} {self.age} {self.gender} {self.image_link} {self.createddatetime}>'
+        return f'<Artist {self.id}' \
+               f' {self.name}' \
+               f' {self.age}' \
+               f' {self.gender}' \
+               f' {self.image_link}' \
+               f' {self.createddatetime}>'

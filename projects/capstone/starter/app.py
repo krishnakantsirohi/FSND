@@ -11,7 +11,8 @@ from flask_cors import CORS
 from werkzeug.exceptions import HTTPException
 from forms import ActorForm, MovieForm
 from dotenv import load_dotenv, find_dotenv
-from flask import Flask, jsonify, redirect, render_template, session, url_for, request, abort, flash
+from flask import (Flask, jsonify, redirect, render_template,
+                   session, url_for, request, abort, flash)
 from authlib.integrations.flask_client import OAuth
 from six.moves.urllib.parse import urlencode
 from config import BaseConfig
@@ -23,7 +24,7 @@ from models import Movies, Actors
 
 from models import setup_db
 
-url = 'http://localhost:5000'#'http://the-casting-agency.herokuapp.com'
+url = 'http://the-casting-agency.herokuapp.com'
 
 ENV_FILE = find_dotenv()
 if ENV_FILE:
@@ -47,8 +48,9 @@ def after_request(response):
     response.headers.add('Access-Control-Allow-Origin',
                          'Content-Type, Authorization')
     response.headers.add('Access-Control-Allow-Methods',
-                     'GET, POST, PATCH, DELETE, OPTIONS')
+                         'GET, POST, PATCH, DELETE, OPTIONS')
     return response
+
 
 @app.errorhandler(Exception)
 def handle_auth_error(ex):
@@ -100,7 +102,8 @@ def callback_handling():
     auth0.authorize_access_token()
     session['access_token'] = auth0.token['access_token']
     session['id_token'] = auth0.token['id_token']
-    session['permissions'] = auth.verify_decode_jwt(session['access_token'])['permissions']
+    session['permissions'] = \
+        auth.verify_decode_jwt(session['access_token'])['permissions']
     session['authorized'] = True
     resp = auth0.get('userinfo')
     userinfo = resp.json()
@@ -116,13 +119,15 @@ def callback_handling():
 
 @app.route('/login')
 def login():
-    return auth0.authorize_redirect(redirect_uri=AUTH0_CALLBACK_URL, audience=AUTH0_AUDIENCE)
+    return auth0.authorize_redirect(redirect_uri=AUTH0_CALLBACK_URL,
+                                    audience=AUTH0_AUDIENCE)
 
 
 @app.route('/logout')
 def logout():
     session.clear()
-    params = {'returnTo': url_for(endpoint='index', _external=True), 'client_id': AUTH0_CLIENT_ID}
+    params = {'returnTo': url_for(endpoint='index', _external=True),
+              'client_id': AUTH0_CLIENT_ID}
     return redirect(auth0.api_base_url + '/v2/logout?' + urlencode(params))
 
 
@@ -142,7 +147,9 @@ def is_authorized():
 @requires_login
 def show_actors():
     actors = json.loads(
-        requests.get(url + '/actors', headers={'Authorization': 'Bearer ' + session['access_token']}).text)
+        requests.get(url + '/actors',
+                     headers={'Authorization':
+                              'Bearer ' + session['access_token']}).text)
     return render_template('listitems.html', items=actors)
 
 
@@ -150,16 +157,21 @@ def show_actors():
 @requires_login
 def show_actor(id):
     actor = json.loads(
-        requests.get(url + '/actors/' + str(id), headers={'Authorization': 'Bearer ' + session['access_token']}).text)
-    return render_template('listdetails.html', item=actor, permissions=session['permissions'])
+        requests.get(url + '/actors/' + str(id),
+                     headers={'Authorization':
+                              'Bearer ' + session['access_token']}).text)
+    return render_template('listdetails.html',
+                           item=actor, permissions=session['permissions'])
 
 
 @app.route('/actors/<int:id>/edit')
 @requires_login
 def edit_actor(id):
     actor = json.loads(
-        requests.get(url + '/actors/' + str(id), headers={'Authorization': 'Bearer ' + session['access_token']}).text)[
-        'actor']
+        requests.get(url + '/actors/' + str(id),
+                     headers={'Authorization':
+                              'Bearer ' +
+                              session['access_token']}).text)['actor']
     form = ActorForm()
     form.name.data = actor['name']
     form.age.data = actor['age']
@@ -172,7 +184,9 @@ def edit_actor(id):
 @requires_login
 def edit_actor_submission(id):
     data = request.form
-    req = requests.patch(url + '/actors/' + str(id), headers={'Authorization': 'Bearer ' + session['access_token']},
+    req = requests.patch(url + '/actors/' + str(id),
+                         headers={'Authorization':
+                                  'Bearer ' + session['access_token']},
                          json=data)
     return redirect(url_for('show_actor', id=id))
 
@@ -189,7 +203,10 @@ def new_actors_form():
 def new_actors_submission():
     data = request.form.to_dict()
     resp = json.loads(
-        requests.post(url + '/actors', headers={'Authorization': 'Bearer ' + session['access_token']}, json=data).text)
+        requests.post(url + '/actors',
+                      headers={'Authorization':
+                               'Bearer ' + session['access_token']},
+                      json=data).text)
     return redirect(url_for('show_actor', id=resp['id']))
 
 
@@ -197,7 +214,10 @@ def new_actors_submission():
 @requires_login
 def remove_actor(id):
     resp = json.loads(requests.delete(url + '/actors/' + str(id),
-                                      headers={'Authorization': 'Bearer ' + session['access_token']}).text)
+                                      headers={'Authorization':
+                                               'Bearer '
+                                               +
+                                               session['access_token']}).text)
     flash(resp['message'])
     return redirect(url_for('index'))
 
@@ -206,7 +226,9 @@ def remove_actor(id):
 @requires_login
 def show_movies():
     movies = json.loads(
-        requests.get(url + '/movies', headers={'Authorization': 'Bearer ' + session['access_token']}).text)
+        requests.get(url + '/movies',
+                     headers={'Authorization':
+                              'Bearer ' + session['access_token']}).text)
     return render_template('listitems.html', items=movies)
 
 
@@ -214,8 +236,11 @@ def show_movies():
 @requires_login
 def show_movie(id):
     movie = json.loads(
-        requests.get(url + '/movies/' + str(id), headers={'Authorization': 'Bearer ' + session['access_token']}).text)
-    return render_template('listdetails.html', item=movie, permissions=session['permissions'])
+        requests.get(url + '/movies/' + str(id),
+                     headers={'Authorization':
+                              'Bearer ' + session['access_token']}).text)
+    return render_template('listdetails.html',
+                           item=movie, permissions=session['permissions'])
 
 
 @app.route('/movies/<int:id>/edit')
@@ -233,7 +258,9 @@ def movies_edit_form(id):
 @requires_login
 def movies_edit_submission(id):
     data = request.form
-    req = requests.patch(url + '/movies/' + str(id), headers={'Authorization': 'Bearer ' + session['access_token']},
+    req = requests.patch(url + '/movies/' + str(id),
+                         headers={'Authorization':
+                                  'Bearer ' + session['access_token']},
                          json=data)
     return redirect(url_for('show_movie', id=id))
 
@@ -250,7 +277,10 @@ def new_movie_form():
 def new_movie_submission():
     form = request.form
     resp = json.loads(
-        requests.post(url + '/movies', headers={'Authorization': 'Bearer ' + session['access_token']}, json=form).text)
+        requests.post(url + '/movies',
+                      headers={'Authorization':
+                               'Bearer ' + session['access_token']},
+                      json=form).text)
     return redirect(url_for('show_movie', id=resp['id']))
 
 
@@ -258,7 +288,9 @@ def new_movie_submission():
 @requires_login
 def movies_delete(id):
     resp = json.loads(requests.delete(url + '/movies/' + str(id),
-                                      headers={'Authorization': 'Bearer ' + session['access_token']}).text)
+                                      headers={'Authorization':
+                                               'Bearer ' +
+                                               session['access_token']}).text)
     flash(resp['message'])
     return redirect(url_for('home'))
 
@@ -291,7 +323,10 @@ def get_actor(permissions, id):
 @auth.requires_auth('add:actors')
 def add_actors(permission):
     data = request.get_json()
-    actor = Actors(name=data['name'], age=data['age'], gender=data['gender'], image_link=data['image_link'])
+    actor = Actors(name=data['name'],
+                   age=data['age'],
+                   gender=data['gender'],
+                   image_link=data['image_link'])
     actor.insert()
     actor = Actors.query.order_by(Actors.id.desc()).first()
     return jsonify({
@@ -373,7 +408,9 @@ def delete_movie(permissions, id):
 @auth.requires_auth('add:movies')
 def add_movie(permission):
     data = request.get_json()
-    movie = Movies(title=data['title'], release_date=data['release_date'], image_link=data['image_link'])
+    movie = Movies(title=data['title'],
+                   release_date=data['release_date'],
+                   image_link=data['image_link'])
     movie.insert()
     movie = Movies.query.order_by(Movies.id.desc()).first()
     return jsonify({

@@ -6,7 +6,9 @@ from wtforms.validators import DataRequired
 class ActorForm(FlaskForm):
     name = StringField('name', validators=[DataRequired()])
     age = IntegerField('age', validators=[DataRequired()])
-    gender = SelectField('gender', choices=[('Male', 'Male'), ('Female', 'Female')], validators=[DataRequired()])
+    gender = SelectField('gender',
+                         choices=[('Male', 'Male'), ('Female', 'Female')],
+                         validators=[DataRequired()])
     image_link = StringField('image_link')
 
 
