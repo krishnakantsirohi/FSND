@@ -161,7 +161,7 @@ def show_actors():
     actors = json.loads(
         requests.get(url + '/actors',
                      headers={'Authorization':
-                                  'Bearer ' + session['access_token']}).text)
+                              'Bearer ' + session['access_token']}).text)
     return render_template('listitems.html', items=actors)
 
 
@@ -171,7 +171,7 @@ def show_actor(actor_id):
     actor = json.loads(
         requests.get(url + '/actors/' + str(actor_id),
                      headers={'Authorization':
-                                  'Bearer ' + session['access_token']}).text)
+                              'Bearer ' + session['access_token']}).text)
     return render_template('listdetails.html',
                            item=actor, permissions=session['permissions'])
 
@@ -182,8 +182,8 @@ def edit_actor(actor_id):
     actor = json.loads(
         requests.get(url + '/actors/' + str(actor_id),
                      headers={'Authorization':
-                                  'Bearer ' +
-                                  session['access_token']}).text)['actor']
+                              'Bearer ' +
+                              session['access_token']}).text)['actor']
     form = ActorForm()
     form.name.data = actor['name']
     form.age.data = actor['age']
@@ -198,7 +198,7 @@ def edit_actor_submission(actor_id):
     data = request.form
     requests.patch(url + '/actors/' + str(actor_id),
                    headers={'Authorization':
-                                'Bearer ' + session['access_token']},
+                            'Bearer ' + session['access_token']},
                    json=data)
     return redirect(url_for('show_actor', actor_id=actor_id))
 
@@ -227,9 +227,8 @@ def new_actors_submission():
 def remove_actor(actor_id):
     resp = json.loads(requests.delete(url + '/actors/' + str(actor_id),
                                       headers={'Authorization':
-                                                   'Bearer '
-                                                   +
-                                                   session['access_token']}).text)
+                                               'Bearer ' +
+                                               session['access_token']}).text)
     flash(resp['message'])
     return redirect(url_for('index'))
 
@@ -240,7 +239,7 @@ def show_movies():
     movies = json.loads(
         requests.get(url + '/movies',
                      headers={'Authorization':
-                                  'Bearer ' + session['access_token']}).text)
+                              'Bearer ' + session['access_token']}).text)
     return render_template('listitems.html', items=movies)
 
 
@@ -250,7 +249,7 @@ def show_movie(movie_id):
     movie = json.loads(
         requests.get(url + '/movies/' + str(movie_id),
                      headers={'Authorization':
-                                  'Bearer ' + session['access_token']}).text)
+                              'Bearer ' + session['access_token']}).text)
     return render_template('listdetails.html',
                            item=movie, permissions=session['permissions'])
 
@@ -272,7 +271,7 @@ def movies_edit_submission(movie_id):
     data = request.form
     requests.patch(url + '/movies/' + str(movie_id),
                    headers={'Authorization':
-                                'Bearer ' + session['access_token']},
+                            'Bearer ' + session['access_token']},
                    json=data)
     return redirect(url_for('show_movie', movie_id=movie_id))
 
@@ -291,7 +290,7 @@ def new_movie_submission():
     resp = json.loads(
         requests.post(url + '/movies',
                       headers={'Authorization':
-                                   'Bearer ' + session['access_token']},
+                               'Bearer ' + session['access_token']},
                       json=form).text)
     return redirect(url_for('show_movie', movie_id=resp['id']))
 
@@ -301,8 +300,8 @@ def new_movie_submission():
 def movies_delete(movie_id):
     resp = json.loads(requests.delete(url + '/movies/' + str(movie_id),
                                       headers={'Authorization':
-                                                   'Bearer ' +
-                                                   session['access_token']}).text)
+                                               'Bearer ' +
+                                               session['access_token']}).text)
     flash(resp['message'])
     return redirect(url_for('home'))
 
