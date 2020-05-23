@@ -4,9 +4,9 @@
 <ul class="items">
     {% if 'actors' in items %}
         {% for item in items.actors %}
-        <li class="item">
-            <i class="fas fa-users"></i>
+        <li>
             <a href="/actors/{{item.id}}/show">
+                <i class="fas fa-users"></i>
                 <div class="item">
                     <h5>{{ item.name }}</h5>
                 </div>
@@ -15,14 +15,15 @@
         {% endfor %}
     {% else %}
         {% for item in items.movies %}
-        <div class="item">
-
+        <li>
             <a href="/movies/{{item.id}}/show">
-                <i class="fas fa-users item"></i><h5>{{ item.title }}</h5>
+                <i class="fas fa-users"></i>
+                <div class="item">
+                    <h5>{{ item.title }}</h5>
+                </div>
             </a>
-        </div>
+        </li>
         {% endfor %}
     {% endif %}
-
 </ul>
 {% endblock %}

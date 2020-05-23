@@ -14,17 +14,31 @@
             <a href="/actors/{{ item.actor.id }}/delete"><i class="far fa-trash-alt" style="color: red"></i></a>
             {%endif%}
         </h1>
-
-        <p class="subtitle">
-            ID: {{ item.actor.id }}
-        </p>
+        <div style="border-top: 0 none; border-bottom: 0 none; border-left: 0 none; border-right: 0 none">
+            <ul class="list-unstyled">
+                <li>
+                    <p class="subtitle">
+                        ID: {{ item.actor.id }}
+                    </p>
+                </li>
+                <li>
+                    <p>
+                        Age: {{ item.actor.age }}
+                    </p>
+                </li>
+                <li>
+                    <p>
+                        Gender: {{ item.actor.gender }}
+                    </p>
+                </li>
+            </ul>
+        </div>
     </div>
     <div class="col-sm-6">
-        <img src="{{ item.actor.image_link }}" alt="Image" width="500px" height="650px"/>
+        <img src="{{ item.actor.image_link }}" alt="Image"/>
     </div>
     {% else %}
     <div class="col-sm-6">
-        {% if 'modify:movies' in permissions %}
         <h1 class="monospace">
             {{ item.movie.title }}
             {% if 'modify:movies' in permissions %}
@@ -34,17 +48,24 @@
             <a href="/movies/{{ item.movie.id }}/delete"><i class="far fa-trash-alt" style="color: red"></i></a>
             {% endif %}
         </h1>
-        {% endif %}
 
-        <p class="subtitle">
-            ID: {{ item.movie.id }}
-        </p>
-        <p class="subtitle">
-            Release date: {{ item.movie.release_date }}
-        </p>
+        <div style="border-top: 0 none; border-bottom: 0 none; border-left: 0 none; border-right: 0 none">
+            <ul class="list-unstyled">
+                <li>
+                    <p class="subtitle">
+                        ID: {{ item.movie.id }}
+                    </p>
+                </li>
+                <li>
+                    <p>
+                        Release Date: {{ item.movie.release_date|datetime }}
+                    </p>
+                </li>
+            </ul>
+        </div>
     </div>
     <div class="col-sm-6">
-        <img src="{{ item.movie.image_link }}" alt="Venue Image" width="500px" height="650px"/>
+        <img src="{{ item.movie.image_link }}" alt="Image"/>
     </div>
     {% endif %}
 </div>

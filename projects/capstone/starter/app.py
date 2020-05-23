@@ -3,6 +3,7 @@
 import os
 from functools import wraps
 
+import dateutil.parser
 import requests
 import json
 import auth as auth
@@ -16,6 +17,7 @@ from flask import (Flask, jsonify, redirect, render_template,
 from authlib.integrations.flask_client import OAuth
 from six.moves.urllib.parse import urlencode
 from config import BaseConfig
+from babel import dates
 
 import constants
 
@@ -50,6 +52,16 @@ def after_request(response):
     response.headers.add('Access-Control-Allow-Methods',
                          'GET, POST, PATCH, DELETE, OPTIONS')
     return response
+
+
+def format_datetime(date):
+    if type(date) is str:
+        date = dateutil.parser.parse(date)
+    date_format = "EEEE MMMM, d, y"
+    return dates.format_datetime(date, date_format, locale='en_us')
+
+
+app.jinja_env.filters['datetime'] = format_datetime
 
 
 @app.errorhandler(Exception)
@@ -149,7 +161,7 @@ def show_actors():
     actors = json.loads(
         requests.get(url + '/actors',
                      headers={'Authorization':
-                              'Bearer ' + session['access_token']}).text)
+                                  'Bearer ' + session['access_token']}).text)
     return render_template('listitems.html', items=actors)
 
 
@@ -159,7 +171,7 @@ def show_actor(actor_id):
     actor = json.loads(
         requests.get(url + '/actors/' + str(actor_id),
                      headers={'Authorization':
-                              'Bearer ' + session['access_token']}).text)
+                                  'Bearer ' + session['access_token']}).text)
     return render_template('listdetails.html',
                            item=actor, permissions=session['permissions'])
 
@@ -170,8 +182,8 @@ def edit_actor(actor_id):
     actor = json.loads(
         requests.get(url + '/actors/' + str(actor_id),
                      headers={'Authorization':
-                              'Bearer ' +
-                              session['access_token']}).text)['actor']
+                                  'Bearer ' +
+                                  session['access_token']}).text)['actor']
     form = ActorForm()
     form.name.data = actor['name']
     form.age.data = actor['age']
@@ -185,10 +197,10 @@ def edit_actor(actor_id):
 def edit_actor_submission(actor_id):
     data = request.form
     requests.patch(url + '/actors/' + str(actor_id),
-                         headers={'Authorization':
-                                  'Bearer ' + session['access_token']},
-                         json=data)
-    return redirect(url_for('show_actor', id=id))
+                   headers={'Authorization':
+                                'Bearer ' + session['access_token']},
+                   json=data)
+    return redirect(url_for('show_actor', actor_id=actor_id))
 
 
 @app.route('/actors/add', methods=['GET'])
@@ -207,7 +219,7 @@ def new_actors_submission():
                       headers={'Authorization':
                                'Bearer ' + session['access_token']},
                       json=data).text)
-    return redirect(url_for('show_actor', id=resp['id']))
+    return redirect(url_for('show_actor', actor_id=resp['id']))
 
 
 @app.route('/actors/<int:actor_id>/delete', methods=['GET'])
@@ -215,9 +227,9 @@ def new_actors_submission():
 def remove_actor(actor_id):
     resp = json.loads(requests.delete(url + '/actors/' + str(actor_id),
                                       headers={'Authorization':
-                                               'Bearer '
-                                               +
-                                               session['access_token']}).text)
+                                                   'Bearer '
+                                                   +
+                                                   session['access_token']}).text)
     flash(resp['message'])
     return redirect(url_for('index'))
 
@@ -228,7 +240,7 @@ def show_movies():
     movies = json.loads(
         requests.get(url + '/movies',
                      headers={'Authorization':
-                              'Bearer ' + session['access_token']}).text)
+                                  'Bearer ' + session['access_token']}).text)
     return render_template('listitems.html', items=movies)
 
 
@@ -238,7 +250,7 @@ def show_movie(movie_id):
     movie = json.loads(
         requests.get(url + '/movies/' + str(movie_id),
                      headers={'Authorization':
-                              'Bearer ' + session['access_token']}).text)
+                                  'Bearer ' + session['access_token']}).text)
     return render_template('listdetails.html',
                            item=movie, permissions=session['permissions'])
 
@@ -259,10 +271,10 @@ def movies_edit_form(movie_id):
 def movies_edit_submission(movie_id):
     data = request.form
     requests.patch(url + '/movies/' + str(movie_id),
-                         headers={'Authorization':
-                                  'Bearer ' + session['access_token']},
-                         json=data)
-    return redirect(url_for('show_movie', id=movie_id))
+                   headers={'Authorization':
+                                'Bearer ' + session['access_token']},
+                   json=data)
+    return redirect(url_for('show_movie', movie_id=movie_id))
 
 
 @app.route('/movies/add')
@@ -279,9 +291,9 @@ def new_movie_submission():
     resp = json.loads(
         requests.post(url + '/movies',
                       headers={'Authorization':
-                               'Bearer ' + session['access_token']},
+                                   'Bearer ' + session['access_token']},
                       json=form).text)
-    return redirect(url_for('show_movie', id=resp['id']))
+    return redirect(url_for('show_movie', movie_id=resp['id']))
 
 
 @app.route('/movies/<int:movie_id>/delete')
@@ -289,8 +301,8 @@ def new_movie_submission():
 def movies_delete(movie_id):
     resp = json.loads(requests.delete(url + '/movies/' + str(movie_id),
                                       headers={'Authorization':
-                                               'Bearer ' +
-                                               session['access_token']}).text)
+                                                   'Bearer ' +
+                                                   session['access_token']}).text)
     flash(resp['message'])
     return redirect(url_for('home'))
 
